@@ -31,7 +31,7 @@ jobs:
             echo "changes=false" >> $GITHUB_OUTPUT
           else
             echo "Changes detected"
-            git merge upstream/main --no-edit
+            git merge upstream/main --no-edit --allow-unrelated-histories
             git push origin main
             echo "changes=true" >> $GITHUB_OUTPUT
           fi
