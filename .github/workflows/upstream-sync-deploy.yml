@@ -1,0 +1,49 @@
+name: Sync upstream and deploy
+
+on:
+  schedule:
+    - cron: "0 * * * *"   # every hour (adjust as needed)
+  workflow_dispatch:       # allow manual trigger too
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Add upstream remote
+        run: git remote add upstream https://github.com/qaz741wsd856/warden-worker.git
+
+      - name: Fetch upstream
+        run: git fetch upstream
+
+      - name: Merge upstream/main into fork main
+        run: |
+          git checkout main
+          git merge upstream/main --no-edit
+          git push origin main
+
+  deploy:
+    needs: sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Publish Worker
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: publish
