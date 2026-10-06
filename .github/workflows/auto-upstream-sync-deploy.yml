@@ -8,6 +8,8 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.check.outputs.changes }}
     steps:
       - name: Checkout fork
         uses: actions/checkout@v3
@@ -20,14 +22,23 @@ jobs:
       - name: Fetch upstream
         run: git fetch upstream
 
-      - name: Merge upstream/main into fork main
+      - name: Check for changes
+        id: check
         run: |
-          git checkout main
-          git merge upstream/main --no-edit
-          git push origin main
+          git fetch upstream main
+          if git diff --quiet HEAD upstream/main; then
+            echo "No changes"
+            echo "changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "Changes detected"
+            git merge upstream/main --no-edit
+            git push origin main
+            echo "changes=true" >> $GITHUB_OUTPUT
+          fi
 
   deploy:
     needs: sync
+    if: needs.sync.outputs.changes == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
